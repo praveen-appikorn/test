@@ -1,16 +1,18 @@
+// ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:test/common/utils.dart';
 import 'package:test/home/models/home_model.dart';
 import 'package:test/home/models/make_success.dart';
 import 'package:test/home/models/model_success.dart';
 import 'package:test/home/repository/home_repository.dart';
 
-final makeLoader = StateProvider.autoDispose<bool>((ref) {
+final makeLoader = StateProvider<bool>((ref) {
   return false;
 });
 
-final modelLoader = StateProvider.autoDispose<bool>((ref) {
+final modelLoader = StateProvider<bool>((ref) {
   return false;
 });
 
@@ -21,11 +23,19 @@ final homeControllerProvider = Provider(
   },
 );
 
-final makeResProvider = StateProvider<MakeSuccess>(
+final makeResProvider = StateNotifierProvider<MakeResNotifier, MakeSuccess>(
   (ref) {
-    return MakeSuccess();
+    return MakeResNotifier();
   },
 );
+
+class MakeResNotifier extends StateNotifier<MakeSuccess> {
+  MakeResNotifier() : super(MakeSuccess());
+
+  void updateState(MakeSuccess data) {
+    state = data;
+  }
+}
 
 final makeAppCodeList = Provider<List<MakeState>>((ref) {
   final watcher = ref.watch(makeResProvider);
@@ -48,11 +58,13 @@ final makeDescList = Provider<List<String>>((ref) {
 
 final modelResProvider = StateProvider<ModelSuccess>(
   (ref) {
+    // print("1 Model class provider inital.");
     return ModelSuccess();
   },
 );
 
 final modelAppCodeList = Provider<List<MakeState>>((ref) {
+  // print("2 Model app code list....");
   final watcher = ref.watch(modelResProvider);
   if (watcher.appCodesArray == null) return [];
 
@@ -62,6 +74,7 @@ final modelAppCodeList = Provider<List<MakeState>>((ref) {
 });
 
 final modelDescList = Provider<List<String>>((ref) {
+  // print("3 Model desc code list....");
   if (ref.watch(modelAppCodeList).isEmpty) return [];
 
   return ref.watch(modelAppCodeList).map((el) {
@@ -76,15 +89,7 @@ class MakeController {
       : _makeRepository = makeRepository;
 
   void getMakeData(BuildContext context, WidgetRef ref) async {
-    ref.read(makeLoader.notifier).update((state) {
-      return true;
-    });
-
     final result = await _makeRepository.getMakeData();
-
-    ref.read(makeLoader.notifier).update((state) {
-      return false;
-    });
 
     result.fold(
       (err) {
@@ -92,25 +97,13 @@ class MakeController {
         showSnackBar(context, err.errMsg);
       },
       (data) {
-        ref.watch(makeResProvider.notifier).update(
-          (state) {
-            return data;
-          },
-        );
+        ref.watch(makeResProvider.notifier).updateState(data);
       },
     );
   }
 
   void getModelData(BuildContext context, WidgetRef ref, String refCode) async {
-    ref.read(modelLoader.notifier).update((state) {
-      return true;
-    });
-
     final result = await _makeRepository.getModelData(refCode);
-
-    ref.read(modelLoader.notifier).update((state) {
-      return false;
-    });
 
     result.fold(
       (err) {
@@ -118,6 +111,8 @@ class MakeController {
         showSnackBar(context, err.errMsg);
       },
       (data) {
+        // print("before updating Model class...");
+
         ref.watch(modelResProvider.notifier).update(
           (state) {
             return data;
@@ -135,3 +130,65 @@ class MakeController {
     );
   }
 }
+
+
+/////////////////////////////////////////////////////////////////////////////////////
+
+// class Loaders {
+//   final bool loaderOne;
+//   final bool loaderTwo;
+
+//   Loaders({required this.loaderOne, required this.loaderTwo});
+
+//   Loaders copyWith({
+//     bool? loaderOne,
+//     bool? loaderTwo,
+//   }) {
+//     return Loaders(
+//       loaderOne: loaderOne ?? this.loaderOne,
+//       loaderTwo: loaderTwo ?? this.loaderTwo,
+//     );
+//   }
+
+//   @override
+//   String toString() => 'Loaders(loaderOne: $loaderOne, loaderTwo: $loaderTwo)';
+// }
+
+// final demoProvider = Provider((ref) {
+//   return Demo();
+// });
+
+// class Demo {
+//   static final updateLoaderProvider = StateProvider<Loaders>(
+//     (ref) {
+//       print("updating loader");
+//       return Loaders(loaderOne: false, loaderTwo: false);
+//     },
+//   );
+
+//   static final loaderListener = StateProvider(
+//     (ref) {
+//       print("listening loader");
+//       final x = ref.watch(Demo.updateLoaderProvider);
+//       return x;
+//     },
+//   );
+
+//   void updateLoaderOne(WidgetRef ref) {
+//     ref.watch(Demo.updateLoaderProvider.notifier).update((state) {
+//       // return state.copyWith(loaderOne: !state.loaderOne);
+//       return Loaders(loaderOne: true, loaderTwo: false);
+//     });
+
+//     ref.read(Demo.loaderListener);
+//   }
+
+//   void updateLoaderTwo(WidgetRef ref) {
+//     ref.watch(Demo.updateLoaderProvider.notifier).update((state) {
+//       // return state.copyWith(loaderTwo: !state.loaderTwo);
+//       return Loaders(loaderOne: false, loaderTwo: true);
+//     });
+
+//     ref.read(Demo.loaderListener);
+//   }
+// }
