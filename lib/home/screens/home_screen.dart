@@ -1,45 +1,48 @@
+import 'dart:async';
+
 import 'package:appikorn_madix_widgets/appikorn_dropdown_searchable_text_field/appikorn_dropdown_searchable_text_field.dart';
 import 'package:appikorn_madix_widgets/appikorn_text_field.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:routemaster/routemaster.dart';
 import 'package:test/home/controller/home_controller.dart';
-import 'package:test/home/screens/test_model.dart';
-import 'package:test/home/screens/test_screen.dart';
-import 'package:test/main.dart';
+// import 'package:test/home/controller/home_controller.dart';
+import 'package:test/home/models/user.dart';
+import 'package:test/home/providers/common_provider.dart';
+import 'package:test/home/providers/make_provider.dart';
+import 'package:test/home/providers/user_provider.dart';
+// import 'package:test/home/screens/second_screen.dart';
 
-// final useSelectedMakeProvider = StateNotifierProvider<DummyNotifier, String>(
-//   (ref) {
-//     return DummyNotifier();
-//   },
-// );
+final counterProvider =
+    StateNotifierProvider.autoDispose<CounterNotifier, Demo>((ref) {
+  return CounterNotifier(ref, Demo());
+});
 
-// class DummyNotifier extends StateNotifier<String> {
-//   DummyNotifier() : super("");
+class Demo {
+  String? name;
+  Demo({this.name});
+}
 
-//   void makeUserSelected(WidgetRef ref) async {
-//     String data =
-//         await ref.watch(flutterSecureStorageProvider).read(key: "makeKey") ??
-//             "";
-//     state = data;
-//   }
-// }
+class CounterNotifier extends AppikornStateNotifier<Demo> {
+  CounterNotifier(super.ref, super.state);
 
-// final userNameProvider = StateNotifierProvider<UserNameNotifier, String>(
-//   (ref) {
-//     return UserNameNotifier();
-//   },
-// );
+  void update(String val) {
+    state = Demo(name: val);
+  }
 
-// class UserNameNotifier extends StateNotifier<String> {
-//   UserNameNotifier() : super("");
+  @override
+  Demo fromJson(Map<String, dynamic> json) {
+    throw UnimplementedError();
+  }
 
-//   void readName(WidgetRef ref) async {
-//     String value =
-//         await ref.watch(flutterSecureStorageProvider).read(key: "username") ??
-//             "";
-//     state = value;
-//   }
-// }
+  @override
+  String get key => throw UnimplementedError();
+
+  @override
+  Map<String, dynamic> toJson(Demo state) {
+    throw UnimplementedError();
+  }
+}
 
 class MyHomePage extends ConsumerStatefulWidget {
   const MyHomePage({super.key});
@@ -48,7 +51,39 @@ class MyHomePage extends ConsumerStatefulWidget {
   ConsumerState<ConsumerStatefulWidget> createState() => _MyHomePageState();
 }
 
+final incProvider = StateProvider.autoDispose<int>(
+  (ref) {
+    final link = ref.keepAlive();
+    final timer = Timer(
+      const Duration(seconds: 10),
+      () {
+        link.close();
+      },
+    );
+    ref.onDispose(
+      () {
+        timer.cancel();
+      },
+    );
+    return 0;
+  },
+);
+
 class _MyHomePageState extends ConsumerState<MyHomePage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) {
+        ref.watch(homeControllerProvider).createMakeData(context, ref);
+      },
+    );
+  }
+
+  void fun() {
+    print(ref.watch(incProvider).toString());
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -64,54 +99,47 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
               builder: (context, ref, child) {
                 return Column(
                   children: [
+                    ElevatedButton(
+                      onPressed: () {
+                        fun();
+                      },
+                      child: const Text("Call function!!"),
+                    ),
+                    appikorn_text_field(
+                      initialValue: ref.watch(counterProvider).name,
+                      widget_key: GlobalKey<FormFieldState<String>>(),
+                      formKey: GlobalKey<FormFieldState<String>>(),
+                      onSaved: (val) {
+                        ref.watch(counterProvider.notifier).update(val!);
+                      },
+                    ),
                     appikorn_text_field(
                       initialValue: ref.watch(userProvider).firstName,
                       widget_key: GlobalKey<FormFieldState<String>>(),
                       formKey: GlobalKey<FormFieldState<String>>(),
                       onSaved: (val) {
-                        ref.watch(userProvider.notifier).update(
+                        ref.read(userProvider.notifier).update(
                               User(firstName: val ?? ""),
                             );
                       },
                     ),
-
-                    // const SizedBox(
-                    //   height: 50,
-                    // ),
-                    // appikorn_dropdown_searchable_text_field(
-                    //   context: context,
-                    //   widget_key: GlobalKey<FormFieldState<String>>(),
-                    //   list: ref.watch(makeDescList),
-                    //   lable: ref.watch(useSelectedMakeProvider).isEmpty
-                    //       ? "Make Vehicle"
-                    //       : ref.watch(useSelectedMakeProvider),
-                    //   controller: ref.watch(useSelectedMakeProvider).isEmpty
-                    //       ? ""
-                    //       : ref.watch(useSelectedMakeProvider),
-                    //   onChanged: (val) async {
-                    //     if (val.isEmpty) return;
-
-                    //     // await ref
-                    //     //     .watch(flutterSecureStorageProvider)
-                    //     //     .write(key: "makeKey", value: val);
-
-                    //     ref
-                    //         .watch(superNotifierProvider.notifier)
-                    //         .updateUserName("makeKey", val);
-
-                    //     final String refCode = ref
-                    //         .watch(homeControllerProvider)
-                    //         .getRefCode(val, ref)
-                    //         .code;
-
-                    //     ref
-                    //         .watch(homeControllerProvider)
-                    //         .getModelData(context, ref, refCode);
-                    //   },
-                    // ),
-                    // const SizedBox(
-                    //   height: 50,
-                    // ),
+                    appikorn_dropdown_searchable_text_field(
+                      context: context,
+                      widget_key: GlobalKey<FormFieldState<String>>(),
+                      list: ref.watch(makeDescList),
+                      lable: ref.watch(userProvider).make ?? "Make Vehicle",
+                      controller: ref.watch(userProvider).make ?? "",
+                      onChanged: (val) {
+                        ref.read(userProvider.notifier).update(
+                              User(make: val ?? ""),
+                            );
+                      },
+                    ),
+                    OutlinedButton(
+                        onPressed: () {
+                          Routemaster.of(context).push('/second');
+                        },
+                        child: const Text("Next Screen ➡️"))
                   ],
                 );
               },
@@ -122,99 +150,3 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
     );
   }
 }
-
-
-// ///////////////////////////////////////////////////
-
-// Column(
-//           mainAxisAlignment: MainAxisAlignment.center,
-//           children: [
-//             Consumer(
-//               builder: (context, ref, child) {
-//                 return Column(
-//                   children: [
-//                     // first drop down
-//                     appikorn_dropdown_searchable_text_field(
-//                       context: context,
-//                       widget_key: GlobalKey<FormFieldState<String>>(),
-//                       list: ref.watch(makeDescList),
-//                       lable: ref.watch(makeLoader)
-//                           ? "Give a minute 😁"
-//                           : "Make Vehicle",
-//                       controller: "",
-//                       onChanged: (val) {
-//                         if (val.isEmpty) return;
-
-//                         final String refCode = ref
-//                             .watch(homeControllerProvider)
-//                             .getRefCode(val, ref)
-//                             .code;
-
-//                         ref
-//                             .watch(homeControllerProvider)
-//                             .getModelData(context, ref, refCode);
-//                       },
-//                     ),
-//                     const SizedBox(
-//                       height: 50,
-//                     ),
-//                     // Second drop-down
-//                     appikorn_dropdown_searchable_text_field(
-//                       context: context,
-//                       widget_key: GlobalKey<FormFieldState<String>>(),
-//                       list: ref.watch(modelDescList),
-//                       lable: ref.watch(modelLoader)
-//                           ? "Give a minute 😁"
-//                           : "Car Model",
-//                       controller: "",
-//                       onChanged: (val) {
-//                         print(val);
-//                       },
-//                     ),
-//                   ],
-//                 );
-//               },
-//             ),
-//             const SizedBox(
-//               height: 50,
-//             ),
-//             Row(
-//               children: [
-//                 ref.watch(Demo.loaderListener).loaderOne
-//                     ? const CircularProgressIndicator(
-//                         color: Colors.amber,
-//                       )
-//                     : const Text(""),
-//                 const SizedBox(
-//                   width: 60,
-//                 ),
-//                 ref.watch(Demo.loaderListener).loaderTwo
-//                     ? const CircularProgressIndicator(
-//                         color: Colors.green,
-//                       )
-//                     : const Text(""),
-//               ],
-//             ),
-//             const SizedBox(
-//               height: 20,
-//             ),
-//             Row(
-//               children: [
-//                 OutlinedButton(
-//                   onPressed: () {
-//                     ref.watch(demoProvider).updateLoaderOne(ref);
-//                   },
-//                   child: const Text("First Loader"),
-//                 ),
-//                 OutlinedButton(
-//                   onPressed: () {
-//                     ref.watch(demoProvider).updateLoaderTwo(ref);
-//                   },
-//                   child: const Text("Second Loader"),
-//                 ),
-//               ],
-//             )
-//           ],
-//         ),
-     
-// //////////////////////////////////////////////////////////////

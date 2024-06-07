@@ -1,12 +1,8 @@
-// To parse this JSON data, do
-//
-//     final demo = demoFromMap(jsonString);
-
 import 'dart:convert';
 
-MakeSuccess demoFromMap(String str) => MakeSuccess.fromMap(json.decode(str));
+MakeSuccess demoFromJson(String str) => MakeSuccess.fromJson(json.decode(str));
 
-String demoToMap(MakeSuccess data) => json.encode(data.toMap());
+String demoToJson(MakeSuccess data) => json.encode(data.toJson());
 
 class MakeSuccess {
   List<AppCodesArray>? appCodesArray;
@@ -19,19 +15,25 @@ class MakeSuccess {
     this.errMessage,
   });
 
-  factory MakeSuccess.fromMap(Map<String, dynamic> json) => MakeSuccess(
+  MakeSuccess copyWith(MakeSuccess data) => MakeSuccess(
+        appCodesArray: data.appCodesArray ?? appCodesArray,
+        respCode: data.respCode ?? respCode,
+        errMessage: data.errMessage ?? errMessage,
+      );
+
+  factory MakeSuccess.fromJson(Map<String, dynamic> json) => MakeSuccess(
         appCodesArray: json["appCodesArray"] == null
             ? []
             : List<AppCodesArray>.from(
-                json["appCodesArray"]!.map((x) => AppCodesArray.fromMap(x))),
+                json["appCodesArray"]!.map((x) => AppCodesArray.fromJson(x))),
         respCode: json["respCode"],
         errMessage: json["errMessage"],
       );
 
-  Map<String, dynamic> toMap() => {
+  Map<String, dynamic> toJson() => {
         "appCodesArray": appCodesArray == null
             ? []
-            : List<dynamic>.from(appCodesArray!.map((x) => x.toMap())),
+            : List<dynamic>.from(appCodesArray!.map((x) => x.toJson())),
         "respCode": respCode,
         "errMessage": errMessage,
       };
@@ -62,7 +64,20 @@ class AppCodesArray {
     this.brand,
   });
 
-  factory AppCodesArray.fromMap(Map<String, dynamic> json) => AppCodesArray(
+  AppCodesArray copyWith(AppCodesArray data) => AppCodesArray(
+        code: data.code ?? code,
+        desc: data.desc ?? desc,
+        value: data.value ?? value,
+        descAr: data.descAr ?? descAr,
+        longDesc: data.longDesc ?? longDesc,
+        longDescBl: data.longDescBl ?? longDescBl,
+        colourCode: data.colourCode ?? colourCode,
+        makeCount: data.makeCount ?? makeCount,
+        brandType: data.brandType ?? brandType,
+        brand: brand ?? brand,
+      );
+
+  factory AppCodesArray.fromJson(Map<String, dynamic> json) => AppCodesArray(
         code: json["code"],
         desc: json["desc"],
         value: json["value"],
@@ -75,7 +90,7 @@ class AppCodesArray {
         brand: json["brand"],
       );
 
-  Map<String, dynamic> toMap() => {
+  Map<String, dynamic> toJson() => {
         "code": code,
         "desc": desc,
         "value": value,
